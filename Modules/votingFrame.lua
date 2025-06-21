@@ -600,8 +600,14 @@ function RCVotingFrame:GetFrame()
 	local b4 = addon:CreateButton(L["Disenchant"], f.content)
 	b4:SetPoint("RIGHT", b3, "LEFT", -10, 0)
 	b4:SetScript("OnClick", function(self) Lib_ToggleDropDownMenu(1, nil, enchanters, self, 0, 0) end )
-	--b4:SetNormalTexture("Interface\\Icons\\INV_Enchant_Disenchant")
---	b4:Hide() -- hidden by default
+        local b5 = addon:CreateButton("Raid day reward", f.content)
+        b5:SetPoint("RIGHT", b4, "LEFT", -10, 0)
+        b5:SetScript("OnClick", function() addon:RewardRaidDay() end)
+        f.raidReward = b5
+        local b6 = addon:CreateButton("Player Management", f.content)
+        b6:SetPoint("RIGHT", b5, "LEFT", -10, 0)
+        b6:SetScript("OnClick", function() addon:OpenPlayerManagement() end)
+        f.playerManage = b6
 	f.disenchant = b4
 
 	-- Number of votes
@@ -874,9 +880,12 @@ function RCVotingFrame.SetCellNote(rowFrame, frame, data, cols, row, realrow, co
 end
 
 function RCVotingFrame.SetCellRoll(rowFrame, frame, data, cols, row, realrow, column, fShow, table, ...)
-	local name = data[realrow].name
-	frame.text:SetText(lootTable[session].candidates[name].roll)
-	data[realrow].cols[column].value = lootTable[session].candidates[name].roll
+        local name = data[realrow].name
+       local roll = lootTable[session].candidates[name].roll
+       local p = addon.PlayerData:Get(name)
+       local att = p and p.attendance or 0
+       frame.text:SetText(format("%s (%d%%)", roll, att))
+       data[realrow].cols[column].value = roll
 end
 
 function RCVotingFrame.filterFunc(table, row)

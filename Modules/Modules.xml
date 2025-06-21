@@ -2,6 +2,7 @@
   <Script file = "lootFrame.lua" />
   <Script file = "versionCheck.lua" />
   <Script file = "votingFrame.lua" />
+  <Script file = "playerData.lua" />
   <Script file = "sessionFrame.lua" />
   <Script file = "options.lua" />
   <Script file = "lootHistory.lua" />
