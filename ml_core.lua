@@ -101,6 +101,8 @@ function ScroogeLootML:AddCandidate(name, class, role, rank, enchant, lvl)
 		["enchanter"] 	= enchant,
 		["enchant_lvl"]	= lvl,
 	}
+    addon.PlayerData:Add(name, class)
+    addon.PlayerData:SendUpdate()
 end
 
 function ScroogeLootML:RemoveCandidate(name)

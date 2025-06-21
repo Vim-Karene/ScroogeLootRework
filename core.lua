@@ -26,7 +26,7 @@ local GUILD_PROMOTE_PATTERN = "^".._G.ERR_GUILD_PROMOTE_SSS:gsub('%%s', '(.+)').
 ScroogeLoot:SetDefaultModuleState(false)
 
 -- Init shorthands
-local db, historyDB, debugLog;-- = self.db.profile, self.lootDB.factionrealm, self.db.global.log
+local db, historyDB, debugLog, playerDB;-- = self.db.profile, self.lootDB.factionrealm, self.db.global.log
 -- init modules
 local defaultModules = {
 	masterlooter =	"ScroogeLootML",
@@ -223,8 +223,9 @@ function ScroogeLoot:OnInitialize()
   	self:RegisterChatCommand("slc", "ChatCommand")
 	self:RegisterComm("ScroogeLoot")
 	self:RegisterComm("ScroogeLoot_WotLK")
-	self.db = LibStub("AceDB-3.0"):New("ScroogeLootDB", self.defaults, true)
-	self.lootDB = LibStub("AceDB-3.0"):New("ScroogeLootLootDB")
+       self.db = LibStub("AceDB-3.0"):New("ScroogeLootDB", self.defaults, true)
+       self.lootDB = LibStub("AceDB-3.0"):New("ScroogeLootLootDB")
+       self.playerDB = LibStub("AceDB-3.0"):New("ScroogeLootPlayerDB", {profile={players={}}}, true)
 	--[[ Format:
 	"playerName" = {
 		[#] = {"lootWon", "date (d/m/y)", "time (h:m:s)", "instance", "boss", "votes", "itemReplaced1", "itemReplaced2", "response", "responseID", "color", "class", "isAwardReason"}
@@ -236,8 +237,9 @@ function ScroogeLoot:OnInitialize()
 
 	-- add shortcuts
 	db = self.db.profile
-	historyDB = self.lootDB.factionrealm
-	debugLog = self.db.global.log
+       historyDB = self.lootDB.factionrealm
+       debugLog = self.db.global.log
+       playerDB = self.playerDB.profile
 
 	-- register the optionstable
 	self.options = self:OptionsTable()
@@ -264,8 +266,10 @@ function ScroogeLoot:OnEnable()
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnEvent")
 	self:RegisterEvent("PLAYER_REGEN_DISABLED", "EnterCombat")
 	self:RegisterEvent("PLAYER_REGEN_ENABLED", "LeaveCombat")
-	self:RegisterEvent("CHAT_MSG_SYSTEM", "CheckGuildUpdate")
-	--self:RegisterEvent("GROUP_ROSTER_UPDATE", "Debug", "event")
+       self:RegisterEvent("CHAT_MSG_SYSTEM", "CheckGuildUpdate")
+       --self:RegisterEvent("GROUP_ROSTER_UPDATE", "Debug", "event")
+
+       self:EnableModule("SLPlayerData")
 
 	if IsInGuild() then
 		self.guildRank = select(2, GetGuildInfo("player"))
@@ -433,13 +437,15 @@ end
 function ScroogeLoot:ChatCommand(msg)
 	local input, arg1, arg2 = self:GetArgs(msg,3)
 	input = strlower(input or "")
-	if not input or input:trim() == "" or input == "help" or input == L["help"] then
-		if self.tVersion then print(format(L["chat tVersion string"],self.version, self.tVersion))
-		else print(format(L["chat version String"],self.version)) end
-		self:Print(L["chat_commands"])
-		self:Debug("- debug or d - Toggle debugging")
-		self:Debug("- log - display the debug log")
-		self:Debug("- clearLog - clear the debug log")
+       if not input or input:trim() == "" then
+               LibStub("AceConfigDialog-3.0"):Open("ScroogeLoot")
+       elseif input == "help" or input == L["help"] then
+               if self.tVersion then print(format(L["chat tVersion string"],self.version, self.tVersion))
+               else print(format(L["chat version String"],self.version)) end
+               self:Print(L["chat_commands"])
+               self:Debug("- debug or d - Toggle debugging")
+               self:Debug("- log - display the debug log")
+               self:Debug("- clearLog - clear the debug log")
 
 	elseif input == 'config' or input == L["config"] or input == "c" then
 		-- Call it twice, because reasons..
@@ -715,11 +721,14 @@ function ScroogeLoot:OnCommReceived(prefix, serializedMsg, distri, sender)
 				self:CallModule("lootframe")
 				self:GetActiveModule("lootframe"):ReRoll(unpack(data))
 
-			elseif command == "playerInfoRequest" then
-				self:SendCommand(sender, "playerInfo", self:GetPlayerInfo())
+                       elseif command == "playerInfoRequest" then
+                               self:SendCommand(sender, "playerInfo", self:GetPlayerInfo())
 
-			elseif command == "message" then
-				self:Print(unpack(data))
+                       elseif command == "message" then
+                               self:Print(unpack(data))
+
+                       elseif command == "playerdata_update" and self:UnitIsUnit(sender, self.masterLooter) then
+                               addon.PlayerData:Apply(unpack(data))
 
 			elseif command == "session_end" and self.enabled then
 				if self:UnitIsUnit(sender, self.masterLooter) then
@@ -1363,12 +1372,25 @@ function ScroogeLoot:GetHistoryDB()
 	end
 end
 
+function ScroogeLoot:GetPlayerDB()
+       return playerDB
+end
+
 function ScroogeLoot:GetAnnounceChannel(channel)
 	return channel == "group" and (self:IsInRaid() and "RAID" or "PARTY") or channel
 end
 
 function ScroogeLoot:GetItemIDFromLink(link)
-	return tonumber(strmatch(link, "item:(%d+):"))
+       return tonumber(strmatch(link, "item:(%d+):"))
+end
+
+function ScroogeLoot:RewardRaidDay()
+       self.PlayerData:RewardRaidDay()
+end
+
+function ScroogeLoot:OpenPlayerManagement()
+       LibStub("AceConfigDialog-3.0"):Open("ScroogeLoot")
+       LibStub("AceConfigDialog-3.0"):SelectGroup("ScroogeLoot", "mlSettings")
 end
 
 --- Custom, better UnitIsUnit() function
