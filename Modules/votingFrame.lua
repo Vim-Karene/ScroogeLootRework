@@ -4,10 +4,10 @@
 --	votingFrame.lua	Displays everything related to handling loot for all members.
 --		Will only show certain aspects depending on addon.isMasterLooter, addon.isCouncil and addon.mldb.observe
 
-local addon = LibStub("AceAddon-3.0"):GetAddon("RCLootCouncil")
+local addon = LibStub("AceAddon-3.0"):GetAddon("ScroogeLoot")
 local RCVotingFrame = addon:NewModule("RCVotingFrame", "AceComm-3.0", "AceTimer-3.0")
 local LibDialog = LibStub("LibDialog-1.0")
-local L = LibStub("AceLocale-3.0"):GetLocale("RCLootCouncil")
+local L = LibStub("AceLocale-3.0"):GetLocale("ScroogeLoot")
 local Deflate = LibStub("LibDeflate")
 
 local ROW_HEIGHT = 20;
@@ -42,16 +42,16 @@ function RCVotingFrame:OnInitialize()
 		{ name = L["Notes"],		align = "CENTER",												width = 40},	-- 11 Note icon
 		{ name = L["Roll"],			align = "CENTER", 							sortnext = 4,		width = 30},	-- 12 Roll
 	}
-	menuFrame = CreateFrame("Frame", "RCLootCouncil_VotingFrame_RightclickMenu", UIParent, "Lib_UIDropDownMenuTemplate")
-	filterMenu = CreateFrame("Frame", "RCLootCouncil_VotingFrame_FilterMenu", UIParent, "Lib_UIDropDownMenuTemplate")
-	enchanters = CreateFrame("Frame", "RCLootCouncil_VotingFrame_EnchantersMenu", UIParent, "Lib_UIDropDownMenuTemplate")
+	menuFrame = CreateFrame("Frame", "ScroogeLoot_VotingFrame_RightclickMenu", UIParent, "Lib_UIDropDownMenuTemplate")
+	filterMenu = CreateFrame("Frame", "ScroogeLoot_VotingFrame_FilterMenu", UIParent, "Lib_UIDropDownMenuTemplate")
+	enchanters = CreateFrame("Frame", "ScroogeLoot_VotingFrame_EnchantersMenu", UIParent, "Lib_UIDropDownMenuTemplate")
 	Lib_UIDropDownMenu_Initialize(menuFrame, self.RightClickMenu, "MENU")
 	Lib_UIDropDownMenu_Initialize(filterMenu, self.FilterMenu)
 	Lib_UIDropDownMenu_Initialize(enchanters, self.EnchantersMenu)
 end
 
 function RCVotingFrame:OnEnable()
-	self:RegisterComm("RCLootCouncil")
+	self:RegisterComm("ScroogeLoot")
 	db = addon:Getdb()
 	active = true
 	moreInfo = db.modules["RCVotingFrame"].moreInfo
@@ -91,7 +91,7 @@ function RCVotingFrame:EndSession(hide)
 end
 
 function RCVotingFrame:OnCommReceived(prefix, serializedMsg, distri, sender)
-	if prefix == "RCLootCouncil" then
+	if prefix == "ScroogeLoot" then
 		-- data is always a table to be unpacked
 		local decoded = Deflate:DecodeForPrint(serializedMsg)
 		if not decoded then 
@@ -186,7 +186,7 @@ function RCVotingFrame:OnCommReceived(prefix, serializedMsg, distri, sender)
 				if db.autoOpen then
 					self:Show()
 				else
-					addon:Print(L['A new session has begun, type "/rc open" to open the voting frame.'])
+					addon:Print(L['A new session has begun, type "/sl open" to open the voting frame.'])
 				end
 				guildRanks = addon:GetGuildRanks() -- Just update it on every session
 
@@ -481,7 +481,7 @@ function RCVotingFrame:GetFrame()
 	if self.frame then return self.frame end
 
 	-- Container and title
-	local f = addon:CreateFrame("DefaultRCLootCouncilFrame", "votingframe", L["RCLootCouncil Voting Frame"], 250, 420)
+	local f = addon:CreateFrame("DefaultScroogeLootFrame", "votingframe", L["ScroogeLoot Voting Frame"], 250, 420)
 	-- Scrolling table
 	local st = LibStub("ScrollingTable"):CreateST(self.scrollCols, NUM_ROWS, ROW_HEIGHT, { ["r"] = 1.0, ["g"] = 0.9, ["b"] = 0.0, ["a"] = 0.5 }, f.content)
 	st.frame:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", 10, 10)
