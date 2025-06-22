@@ -1,4 +1,4 @@
-﻿-- Author      : Potdisc
+-- Author      : Potdisc
 -- Create Date : 3/11/2013 10:25:13 PM
 -- tokenData.lua
 -- Contains equip location and useable classes from tier tokens
