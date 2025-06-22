@@ -21,7 +21,24 @@ if not string.trim then
     end
 end
 
-function addon:IsInRaid() 
+-- Provide `table.wipe` for 3.3.5a which only exposes a global `wipe` helper
+if not table.wipe and wipe then
+    table.wipe = wipe
+end
+
+-- Backport `GetInventoryItemID` using item links
+if not GetInventoryItemID then
+    ---Retrieve the item ID for the given unit slot.
+    ---@param unit string
+    ---@param invSlot number
+    ---@return number|nil
+    function GetInventoryItemID(unit, invSlot)
+        local link = GetInventoryItemLink(unit, invSlot)
+        return link and tonumber(link:match("item:(%d+)"))
+    end
+end
+
+function addon:IsInRaid()
     return GetNumRaidMembers() > 0
 end
 
