@@ -61,7 +61,7 @@
                                                                                                                 
                                                                                                                 
 
-Scrooge Loot is a customized version of RCLootCouncil, tailored to support a unique loot and attendance system originally developed for the *Dancing Boars* raid guild on the Turtle WoW private server, but will now support *Disco Ducks* in Epoch WoW. What started as a quirky but powerful loot system has now grown into a full-fledged addon for Epoch WoW private server.
+Scrooge Loot is a customized version of RCLootCouncil, tailored to support a unique loot and attendance system originally developed for the *Dancing Boars* raid guild on the Turtle WoW private server, but will now support *Disco Ducks* in Epoch WoW. What started as a quirky but powerful loot system has now grown into a full-fledged addon for Epoch WoW private server. We personally see it as the most fair loot system for a set raid team, a system being worked on for 3 years.
 
 ## ✨ What Is Scrooge Loot?
 Scrooge Loot is a raid loot management addon built on top of the trusted RCLootCouncil framework for World of Warcraft 3.3.5a, modified to support custom point-based loot distribution systems and enhanced raid tracking.
