@@ -80,9 +80,9 @@ It is designed exclusively for raid leaders and loot masters who want advanced c
 - UI dropdown for loot masters to manage systems easily
 
 ## 📜 Origins
-Scrooge Loot began as a custom mod for the semi-serious, semi-chaotic raid group Dancing Boars on Turtle WoW. It was created to handle our strange mix of duck-themed point rolls, token limitations, and quirky player rules. The system worked so well it caught on—leading to its adoption and refinement for broader use.
+Scrooge Loot began as a custom loot system for the semi-serious, semi-chaotic raid group Dancing Boars on Turtle WoW. It was created to handle our strange mix of point rolls, item reservations, and attendance. The system worked so well it caught on—leading to its adoption and refinement for broader use.
 
-It’s now the official loot addon for Epoch WoW, where it continues to evolve to fit the needs of our raiding community.
+It’s now an official loot addon for Epoch WoW, where it continues to evolve to fit the needs of our raiding community.
 
 ## 🧩 Requirements
 - World of Warcraft 3.3.5a client (Epoch WoW compatible)
