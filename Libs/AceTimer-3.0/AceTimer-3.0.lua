@@ -22,9 +22,14 @@ local AceTimer, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not AceTimer then return end -- No upgrade needed
 
-AceTimer.frame = AceTimer.frame or CreateFrame("Frame", "AceTimer30Frame") -- Animation parent
+AceTimer.frame = AceTimer.frame or CreateFrame("Frame", "AceTimer30Frame") -- timer driver frame
 AceTimer.inactiveTimers = AceTimer.inactiveTimers or {}                    -- Timer recycling storage
 AceTimer.activeTimers = AceTimer.activeTimers or {}                        -- Active timer list
+
+-- WoTLK does not provide the Animation API introduced in later versions.
+-- Detect whether we can use animations or if we must fall back to an OnUpdate
+-- driven timer implementation.
+local useAnimation = type(AceTimer.frame.CreateAnimationGroup) == "function"
 
 -- Lua APIs
 local type, unpack, next, error, pairs, tostring, select = type, unpack, next, error, pairs, tostring, select
@@ -52,42 +57,99 @@ local function OnFinished(self)
 	end
 end
 
-local function new(self, loop, func, delay, ...)
-	local timer = next(inactiveTimers)
-	if timer then
-		inactiveTimers[timer] = nil
-	else
-		local anim = AceTimer.frame:CreateAnimationGroup()
-		timer = anim:CreateAnimation()
-		timer:SetScript("OnFinished", OnFinished)
-	end
+local timerUID = 0
 
-	-- Very low delays cause the animations to fail randomly.
-	-- A limited resolution of 0.01 seems reasonable.
-	if delay < 0.01 then
-		delay = 0.01
-	end
+local function newAnim(self, loop, func, delay, ...)
+        local timer = next(inactiveTimers)
+        if timer then
+                inactiveTimers[timer] = nil
+        else
+                local anim = AceTimer.frame:CreateAnimationGroup()
+                timer = anim:CreateAnimation()
+                timer:SetScript("OnFinished", OnFinished)
+        end
 
-	timer.object = self
-	timer.func = func
-	timer.looping = loop
-	timer.args = {...}
-	timer.argsCount = select("#", ...)
+        -- Very low delays cause the animations to fail randomly.
+        -- A limited resolution of 0.01 seems reasonable.
+        if delay < 0.01 then
+                delay = 0.01
+        end
 
-	local anim = timer:GetParent()
-	if loop then
-		anim:SetLooping("REPEAT")
-	else
-		anim:SetLooping("NONE")
-	end
-	timer:SetDuration(delay)
+        timer.object = self
+        timer.func = func
+        timer.looping = loop
+        timer.args = {...}
+        timer.argsCount = select("#", ...)
 
-	local id = tostring(timer.args)
-	timer.id = id
-	activeTimers[id] = timer
+        local anim = timer:GetParent()
+        if loop then
+                anim:SetLooping("REPEAT")
+        else
+                anim:SetLooping("NONE")
+        end
+        timer:SetDuration(delay)
 
-	anim:Play()
-	return id
+        timerUID = timerUID + 1
+        local id = tostring(timerUID)
+        timer.id = id
+        activeTimers[id] = timer
+
+        anim:Play()
+        return id
+end
+
+local function newOnUpdate(self, loop, func, delay, ...)
+        local timer = next(inactiveTimers)
+        if timer then
+                inactiveTimers[timer] = nil
+        else
+                timer = {}
+        end
+
+        if delay < 0.01 then
+                delay = 0.01
+        end
+
+        timer.object = self
+        timer.func = func
+        timer.looping = loop
+        timer.args = {...}
+        timer.argsCount = select("#", ...)
+        timer.remaining = delay
+        timer.total = delay
+
+        timerUID = timerUID + 1
+        local id = tostring(timerUID)
+        timer.id = id
+        activeTimers[id] = timer
+
+        return id
+end
+
+local new = useAnimation and newAnim or newOnUpdate
+
+if not useAnimation then
+        local function onUpdate(_, elapsed)
+                for id, timer in pairs(activeTimers) do
+                        timer.remaining = timer.remaining - elapsed
+                        if timer.remaining <= 0 then
+                                if type(timer.func) == "string" then
+                                        timer.object[timer.func](timer.object, unpack(timer.args, 1, timer.argsCount))
+                                else
+                                        timer.func(unpack(timer.args, 1, timer.argsCount))
+                                end
+
+                                if timer.looping then
+                                        timer.remaining = timer.total
+                                else
+                                        activeTimers[id] = nil
+                                        timer.args = nil
+                                        inactiveTimers[timer] = true
+                                end
+                        end
+                end
+        end
+        AceTimer.frame:SetScript("OnUpdate", onUpdate)
 end
 
 --- Schedule a new one-shot timer.
@@ -159,16 +221,18 @@ end
 -- and the timer has not fired yet or was canceled before.
 -- @param id The id of the timer, as returned by `:ScheduleTimer` or `:ScheduleRepeatingTimer`
 function AceTimer:CancelTimer(id)
-	local timer = activeTimers[id]
-	if not timer then return false end
+        local timer = activeTimers[id]
+        if not timer then return false end
 
-	local anim = timer:GetParent()
-	anim:Stop()
+        if useAnimation then
+                local anim = timer:GetParent()
+                anim:Stop()
+        end
 
-	activeTimers[id] = nil
-	timer.args = nil
-	inactiveTimers[timer] = true
-	return true
+        activeTimers[id] = nil
+        timer.args = nil
+        inactiveTimers[timer] = true
+        return true
 end
 
 --- Cancels all timers registered to the current addon object ('self')
@@ -185,9 +249,13 @@ end
 -- @param id The id of the timer, as returned by `:ScheduleTimer` or `:ScheduleRepeatingTimer`
 -- @return The time left on the timer.
 function AceTimer:TimeLeft(id)
-	local timer = activeTimers[id]
-	if not timer then return 0 end
-	return timer:GetDuration() - timer:GetElapsed()
+        local timer = activeTimers[id]
+        if not timer then return 0 end
+        if useAnimation then
+                return timer:GetDuration() - timer:GetElapsed()
+        else
+                return timer.remaining
+        end
 end
 
 
@@ -234,12 +302,14 @@ elseif oldminor and oldminor < 13 then
 end
 
 -- upgrade existing timers to the latest OnFinished
-for timer in pairs(inactiveTimers) do
-	timer:SetScript("OnFinished", OnFinished)
-end
+if useAnimation then
+        for timer in pairs(inactiveTimers) do
+                timer:SetScript("OnFinished", OnFinished)
+        end
 
-for _,timer in pairs(activeTimers) do
-	timer:SetScript("OnFinished", OnFinished)
+        for _,timer in pairs(activeTimers) do
+                timer:SetScript("OnFinished", OnFinished)
+        end
 end
 
 -- ---------------------------------------------------------------------
